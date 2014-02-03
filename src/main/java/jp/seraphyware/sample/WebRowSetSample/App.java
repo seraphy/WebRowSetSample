@@ -184,7 +184,7 @@ public class App {
         final App app = new App();
 
         app.initDb();
-        app.setupData(3, false); // 第二引数をtrueにするとBlob/Clobのテストを行う.
+        app.setupData(10, false); // 第二引数をtrueにするとBlob/Clobのテストを行う.
 
         RowSetFactory rowSetFactory = RowSetProvider.newFactory();
         final CachedRowSet rowSet = rowSetFactory.createCachedRowSet();
@@ -213,13 +213,22 @@ public class App {
 
         // CachedRowSetはオフラインのResultSetとして利用可能である.
         // タイプはTYPE_SCROLL_SENSITIVEとなるのでカーソルは上下自由に移動できる.
-        // (RowSetは繰り返し使えるので、使用前にカーソル位置を最初に巻き戻しておくのが定石か。)
+        // RowSetは繰り返し使えるので、使用前にカーソル位置を最初に巻き戻しておくのが定石か。
+        // (※ beforeFirst等は、スクロール可能なカーソルタイプのResultSetでないと失敗する。)
         rowSet.beforeFirst();
         app.dump(rowSet, pw);
         pw.flush();
 
-        // CachedRowSetはレコードの更新・追加・削除も可能である.
+        // size()で返される行数は、常に削除行を含めた総数である.
         int numOfRows = rowSet.size();
+
+        // next, previous, absolute, relativeなどカーソル移動の操作では
+        // setShowDeletedの状態がtrueでないかぎり、削除行をスキップして進める動きとなる.
+        // 行番号がずれないよう、削除行でもスキップされないようにする.
+        // ※ size()とabsolute()で行位置を指定する場合は、削除行も表示しておかないと不味い。
+        rowSet.setShowDeleted(true);
+        
+        // CachedRowSetはレコードの更新・追加・削除も可能である.
         for (int rowNum = 1; rowNum <= numOfRows; rowNum++) {
             rowSet.absolute(rowNum); // CachedRowSetは行番号を指定して移動できる
             if (rowNum % 2 == 1) {
@@ -235,6 +244,7 @@ public class App {
                 rowSet.deleteRow();
             }
         }
+        
         // 挿入する場合は、挿入用の位置にカーソルを移動してupdateを行う.
         for (int idx = 0; idx < 2; idx++) {
             rowSet.moveToInsertRow();
@@ -245,7 +255,9 @@ public class App {
         rowSet.moveToCurrentRow(); // カーソルを参照用に戻す.
 
         // 更新したRowSetを表示してみる
-        // 削除された行はデフォルトでは不可視となる.
+        // 削除された行は不可視とする.
+        // (setShowDeletedで明示的にtrueにしないかぎり既定は不可視)
+        rowSet.setShowDeleted(false);
         rowSet.beforeFirst();
         app.dump(rowSet, pw);
         pw.flush();
