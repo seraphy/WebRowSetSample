@@ -189,6 +189,14 @@ public class App {
         RowSetFactory rowSetFactory = RowSetProvider.newFactory();
         final CachedRowSet rowSet = rowSetFactory.createCachedRowSet();
 
+        // JDK6以前
+//        final CachedRowSet rowSet;
+//        try {
+//        	rowSet = (CachedRowSet) Class.forName("com.sun.rowset.CachedRowSetImpl").newInstance();
+//        } catch (Exception ex) {
+//        	throw new RuntimeException(ex);
+//        }
+
         // リファレンス実装は、com.sun.rowset.CachedRowSetImpl
         // Java6まではRowSetFactoryがなかったためリファレンス実装を使うためには、
         // Class.forName("com.sun.rowset.CachedRowSetImpl")を使う必要があった.
@@ -227,7 +235,7 @@ public class App {
         // 行番号がずれないよう、削除行でもスキップされないようにする.
         // ※ size()とabsolute()で行位置を指定する場合は、削除行も表示しておかないと不味い。
         rowSet.setShowDeleted(true);
-        
+
         // CachedRowSetはレコードの更新・追加・削除も可能である.
         for (int rowNum = 1; rowNum <= numOfRows; rowNum++) {
             rowSet.absolute(rowNum); // CachedRowSetは行番号を指定して移動できる
@@ -244,7 +252,7 @@ public class App {
                 rowSet.deleteRow();
             }
         }
-        
+
         // 挿入する場合は、挿入用の位置にカーソルを移動してupdateを行う.
         for (int idx = 0; idx < 2; idx++) {
             rowSet.moveToInsertRow();
